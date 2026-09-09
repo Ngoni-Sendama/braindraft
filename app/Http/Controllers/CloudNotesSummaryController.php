@@ -163,10 +163,15 @@ class CloudNotesSummaryController extends Controller
     {
         $request->validate([
             'subject' => ['required', 'string', 'in:'.implode(',', array_keys($this->subjects))],
-            'sources' => ['required', 'array', 'min:1'],
+            'sources' => ['nullable', 'array'],
+            'passage' => ['nullable', 'string', 'max:12000'],
         ]);
 
-        $notes = $this->collectNotes($request->subject, $request->sources);
+        if (! trim((string) $request->input('passage')) && empty($request->input('sources'))) {
+            return back()->withErrors(['sources' => 'Provide a passage or select at least one source note.']);
+        }
+
+        $notes = trim((string) $request->input('passage')) ?: $this->collectNotes($request->subject, $request->sources);
 
         $result = $this->askOpenAiJson($this->diagramPrompt($request->subject, $notes));
 
@@ -180,60 +185,48 @@ class CloudNotesSummaryController extends Controller
     private function summaryPrompt(string $subject, string $notes): string
     {
         return <<<PROMPT
-You are a {$subject} university tutor.
+You are an expert {$subject} university tutor preparing a student for exams.
 
-Use the notes below as the official guide.
+Treat the notes below as the authoritative source of truth for content and scope.
 
-VERY IMPORTANT RULES:
-- Identify the main topics from the notes.
-- Create one section for each major topic.
-- Do not invent topics that are unrelated to the selected subject.
-- If the notes have limited content for a topic, explain it using the notes and general {$subject} knowledge.
-- Make the explanation useful for exam preparation.
-- Return JSON only.
+CORE RULES:
+1. Identify the main topics in the notes. Group tightly related sub-points into one topic. Do not split one concept into trivial topics or merge distinct concepts. Aim for topics that could be separate exam questions.
+2. Stay strictly within {$subject}. Do not introduce unrelated topics, tools, or concepts.
+3. If notes are thin, supplement only with established {$subject} knowledge. Do not contradict the notes.
+4. If notes are unclear, incomplete, or garbled, reconstruct the intended meaning and explain the inference in assumptions. Never silently invent facts.
+5. Write for a true beginner. Define technical terms when first used, use one simple analogy per topic, avoid unexplained acronyms, and prefer short sentences.
+6. Return JSON only. No text before or after the JSON.
+
+LENGTH AND DEPTH RULES:
+- summary: 100 to 180 words.
+- key_points: 4 to 7 short, specific, exam-checkable facts.
+- Provide two sample answers per topic.
+- 5-mark answer: 80 to 120 words, with 3 to 4 core points and minimal elaboration.
+- 10-mark answer: 180 to 280 words, with sub-points, comparisons, a diagram description in words when relevant, and deeper justification.
+- real_world_examples: 2 to 4 concrete examples relevant to {$subject}.
 
 FORMAT:
 {
   "topics": [
     {
-      "title": "Service Providers",
-      "summary": "...",
-      "key_points": ["...", "..."],
-      "how_to_answer": "...",
-      "real_world_examples": ["...", "..."],
-      "sample_answer": "..."
+      "title": "string",
+      "summary": "string",
+      "key_points": ["string", "..."],
+      "how_to_answer": {
+        "5_mark_structure": "brief structure guidance",
+        "10_mark_structure": "structure guidance with sub-points, examples, or comparisons"
+      },
+      "real_world_examples": ["string", "..."],
+      "sample_answers": {
+        "5_mark": "string",
+        "10_mark": "string"
+      },
+      "assumptions": "empty string if notes were clear; otherwise state what was inferred"
     }
   ]
 }
 
-FOR EACH TOPIC:
-1. summary:
-- Explain clearly.
-- Use beginner-friendly language.
-- Add enough detail for understanding.
-
-2. key_points:
-- List important exam points.
-- These should be points a student must mention for marks.
-
-3. how_to_answer:
-- Explain how to structure a 5 to 10 mark answer.
-- Use this structure:
-  Introduction
-  Main explanation
-  Example
-  Conclusion
-
-4. real_world_examples:
-- Give practical examples.
-- Use examples like AWS, Azure, Google Cloud, Hadoop, Google Search, Netflix, banking systems, school systems, etc.
-
-5. sample_answer:
-- Write a strong exam-style answer.
-- The answer should be suitable for 5 to 10 marks.
-- Do not make it too short.
-
-NOTES:
+NOTES ({$subject}):
 {$notes}
 PROMPT;
     }

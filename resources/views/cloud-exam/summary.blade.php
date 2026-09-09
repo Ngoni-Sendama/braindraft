@@ -26,7 +26,12 @@
                 </ul>
 
                 <h3 class="font-semibold">How to Answer</h3>
-                <p class="mb-3 whitespace-pre-line">{{ $topic['how_to_answer'] ?? '' }}</p>
+                @if (is_array($topic['how_to_answer'] ?? null))
+                    <p class="mb-2"><strong>5-mark structure:</strong> {{ $topic['how_to_answer']['5_mark_structure'] ?? '' }}</p>
+                    <p class="mb-3"><strong>10-mark structure:</strong> {{ $topic['how_to_answer']['10_mark_structure'] ?? '' }}</p>
+                @else
+                    <p class="mb-3 whitespace-pre-line">{{ $topic['how_to_answer'] ?? '' }}</p>
+                @endif
 
                 <h3 class="font-semibold">Examples</h3>
                 <ul class="list-disc pl-6 mb-3">
@@ -35,8 +40,15 @@
                     @endforeach
                 </ul>
 
-                <h3 class="font-semibold">Sample Answer</h3>
-                <p class="whitespace-pre-line">{{ $topic['sample_answer'] ?? '' }}</p>
+                <h3 class="font-semibold">5-Mark Answer</h3>
+                <p class="mb-3 whitespace-pre-line">{{ $topic['sample_answers']['5_mark'] ?? $topic['sample_answer'] ?? '' }}</p>
+
+                <h3 class="font-semibold">10-Mark Answer</h3>
+                <p class="whitespace-pre-line">{{ $topic['sample_answers']['10_mark'] ?? '' }}</p>
+
+                @if (!empty($topic['assumptions']))
+                    <p class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"><strong>Assumption:</strong> {{ $topic['assumptions'] }}</p>
+                @endif
             </div>
         @endforeach
 

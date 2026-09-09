@@ -66,6 +66,14 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block font-semibold mb-2">Quick Diagram Passage <span class="font-normal text-slate-500">(optional)</span></label>
+                <textarea name="passage" rows="5" maxlength="12000"
+                    class="w-full rounded-lg border border-slate-300 p-3"
+                    placeholder="Paste a short passage here to generate diagrams only from this text. Leave empty to use the selected notes."></textarea>
+                <p class="mt-1 text-sm text-slate-500">This applies to Generate Diagrams and avoids sending the whole document.</p>
+            </div>
+
             <div class="grid gap-3 md:grid-cols-3">
                 <button formaction="{{ route('cloud.exam.generate') }}"
                     class="w-full rounded-lg bg-slate-900 px-5 py-3 font-semibold text-white">
