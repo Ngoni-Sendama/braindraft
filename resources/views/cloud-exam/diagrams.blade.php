@@ -4,24 +4,21 @@
 <head>
     <title>Study Diagrams</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            securityLevel: 'strict'
-        });
-    </script>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
     <div class="max-w-5xl mx-auto p-6 space-y-6">
         <div>
             <h1 class="text-2xl font-bold">Study Diagrams</h1>
-            <p class="text-slate-600">Visual explanations generated separately using OpenAI.</p>
+            <p class="text-slate-600">Visual explanations generated as images using an OpenAI image model.</p>
         </div>
 
+        @if (!empty($result['image_url']))
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h2 class="text-xl font-bold mb-4">{{ $result['title'] ?? 'Study Diagram' }}</h2>
+                <img src="{{ $result['image_url'] }}" alt="{{ $result['title'] ?? 'Study Diagram' }}" class="w-full rounded-lg border border-slate-200">
+            </div>
+        @else
         @forelse ($result['diagrams'] ?? [] as $diagram)
             <div class="bg-white p-6 rounded-xl shadow-sm">
                 <h2 class="text-xl font-bold mb-2">{{ $diagram['title'] ?? 'Diagram' }}</h2>
@@ -39,6 +36,7 @@
                 No diagrams were generated.
             </div>
         @endforelse
+        @endif
 
         <a href="{{ route('cloud.exam.index') }}"
             class="inline-block mt-4 bg-slate-900 text-white px-5 py-3 rounded-lg">

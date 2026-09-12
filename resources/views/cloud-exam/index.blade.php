@@ -26,6 +26,22 @@
                 {{ $errors->first() }}
             </div>
         @endif
+        @if (session('success'))<div class="mb-4 rounded-lg bg-emerald-50 p-4 text-emerald-700">{{ session('success') }}</div>@endif
+
+        @if ($diagrams->isNotEmpty())
+            <div class="mb-6 bg-white rounded-xl shadow-sm p-6">
+                <h2 class="font-semibold mb-3">Saved {{ $selectedSubject }} diagrams</h2>
+                <div class="space-y-2">
+                    @foreach ($diagrams as $diagram)
+                        <div class="flex justify-between items-center border-b border-slate-100 py-2">
+                            <span>{{ $diagram->title }}</span>
+                            @if ($diagram->status === 'ready')<a class="text-indigo-600 font-semibold" href="{{ asset('storage/'.$diagram->path) }}" target="_blank">View image</a>
+                            @else<span class="text-sm text-slate-500">{{ ucfirst($diagram->status) }}</span>@endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <form method="POST" action="{{ route('cloud.exam.generate') }}"
             class="bg-white rounded-xl shadow-sm p-6 space-y-6">

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use App\Jobs\GenerateStudyDiagram;
+use App\Models\StudyDiagram;
 use Smalot\PdfParser\Parser;
 use ZipArchive;
 
@@ -173,13 +175,42 @@ class CloudNotesSummaryController extends Controller
 
         $notes = trim((string) $request->input('passage')) ?: $this->collectNotes($request->subject, $request->sources);
 
-        $result = $this->askOpenAiJson($this->diagramPrompt($request->subject, $notes));
+        $diagram = StudyDiagram::create(['subject_code' => $request->subject, 'title' => $request->subject.' Study Diagram', 'status' => 'processing']);
+        GenerateStudyDiagram::dispatch($diagram->id, $request->subject, $notes);
 
-        if (! is_array($result)) {
-            return back()->withErrors(['ai' => 'Failed to generate diagrams. Check OPENAI_API_KEY.']);
+        return redirect()->route('cloud.exam.index', ['subject' => $request->subject])
+            ->with('success', 'Diagram queued. Start the queue worker to generate it.');
+    }
+
+    private function askOpenAiImage(string $subject, string $notes): mixed
+    {
+        $prompt = "Create a clean educational study diagram for {$subject}. Summarize the supplied study material visually. Use a clear hierarchy, readable labels, arrows, simple icons and high contrast. Include only concepts supported by the material. Do not use decorative or distracting elements. Material:\n".Str::limit($notes, 12000, '');
+
+        $response = Http::timeout(120)
+            ->withToken(config('services.openai.key'))
+            ->post('https://api.openai.com/v1/images/generations', [
+                'model' => config('services.openai.image_model', 'gpt-image-1-mini'),
+                'prompt' => $prompt,
+                'size' => '1536x1024',
+                'quality' => 'medium',
+                'output_format' => 'png',
+            ]);
+
+        if (! $response->successful()) {
+            return null;
         }
 
-        return view('cloud-exam.diagrams', compact('result'));
+        $image = $response->json('data.0');
+        $url = $image['url'] ?? null;
+        if ($url) {
+            return ['image_url' => $url, 'title' => "{$subject} Study Diagram"];
+        }
+
+        if (! empty($image['b64_json'])) {
+            return ['image_url' => 'data:image/png;base64,'.$image['b64_json'], 'title' => "{$subject} Study Diagram"];
+        }
+
+        return null;
     }
 
     private function summaryPrompt(string $subject, string $notes): string

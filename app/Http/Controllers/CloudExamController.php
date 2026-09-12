@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Smalot\PdfParser\Parser;
 use ZipArchive;
+use App\Models\StudyDiagram;
 
 class CloudExamController extends Controller
 {
@@ -48,7 +49,8 @@ class CloudExamController extends Controller
             ])
             ->values();
 
-        return view('cloud-exam.index', compact('files', 'subjects', 'selectedSubject'));
+        $diagrams = StudyDiagram::where('subject_code', $selectedSubject)->latest()->get();
+        return view('cloud-exam.index', compact('files', 'subjects', 'selectedSubject', 'diagrams'));
     }
 
     public function attempt()
