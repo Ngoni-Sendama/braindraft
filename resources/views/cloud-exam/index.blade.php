@@ -2,14 +2,14 @@
 <html>
 
 <head>
-    <title>Semester Exam Generator</title>
+    <title>MCQ Study Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-900">
     <div class="max-w-4xl mx-auto p-6">
-        <h1 class="text-2xl font-bold mb-2">Semester Written Test Generator</h1>
-        <p class="text-slate-600 mb-6">Select a subject, choose notes, and generate a written practice exam.
+        <h1 class="text-2xl font-bold mb-2">MCQ Study Generator</h1>
+        <p class="text-slate-600 mb-6">Select one of your three subjects, choose the lecture notes, and generate an MCQ practice exam or study summary.
         </p>
 
         <form method="GET" action="{{ route('cloud.exam.index') }}" class="mb-4 bg-white rounded-xl shadow-sm p-4">

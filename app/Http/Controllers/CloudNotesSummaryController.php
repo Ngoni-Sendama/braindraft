@@ -185,24 +185,26 @@ class CloudNotesSummaryController extends Controller
     private function summaryPrompt(string $subject, string $notes): string
     {
         return <<<PROMPT
-You are an expert {$subject} university tutor preparing a student for exams.
+You are an expert {$subject} university tutor preparing a beginner for a multiple-choice examination.
 
 Treat the notes below as the authoritative source of truth for content and scope.
 
 CORE RULES:
-1. Identify the main topics in the notes. Group tightly related sub-points into one topic. Do not split one concept into trivial topics or merge distinct concepts. Aim for topics that could be separate exam questions.
+1. Identify the main topics in the notes and preserve all examinable details. Group related sub-points sensibly; do not oversimplify or omit numbers, dates, names, classifications, examples, functions, causes, effects or distinctions.
 2. Stay strictly within {$subject}. Do not introduce unrelated topics, tools, or concepts.
 3. If notes are thin, supplement only with established {$subject} knowledge. Do not contradict the notes.
 4. If notes are unclear, incomplete, or garbled, reconstruct the intended meaning and explain the inference in assumptions. Never silently invent facts.
-5. Write for a true beginner. Define technical terms when first used, use one simple analogy per topic, avoid unexplained acronyms, and prefer short sentences.
-6. Return JSON only. No text before or after the JSON.
+5. Write for a true beginner. Explain simply first, then give exam-level detail. Define technical terms when first used, avoid unexplained acronyms, and include a "Do not confuse" section for similar concepts.
+6. Treat the syllabus as the scope when it is included among the sources. Treat sample-paper content as evidence of question style and likely emphasis, not as permission to invent facts.
+7. If the sample paper is scanned or unreadable, say so in assumptions.
+8. Return JSON only. No text before or after the JSON.
 
 LENGTH AND DEPTH RULES:
-- summary: 100 to 180 words.
-- key_points: 4 to 7 short, specific, exam-checkable facts.
-- Provide two sample answers per topic.
-- 5-mark answer: 80 to 120 words, with 3 to 4 core points and minimal elaboration.
-- 10-mark answer: 180 to 280 words, with sub-points, comparisons, a diagram description in words when relevant, and deeper justification.
+- summary: 120 to 220 words.
+- key_points: 6 to 12 specific, exam-checkable facts.
+- important_facts: all important numbers, dates, names, classifications and technical details.
+- mcq_traps: common confusions and likely distractors.
+- Provide a simple explanation and an exam-level explanation for every topic.
 - real_world_examples: 2 to 4 concrete examples relevant to {$subject}.
 
 FORMAT:
@@ -211,16 +213,16 @@ FORMAT:
     {
       "title": "string",
       "summary": "string",
+      "simple_explanation": "string",
+      "exam_level_explanation": "string",
       "key_points": ["string", "..."],
+      "important_facts": ["string", "..."],
+      "mcq_traps": ["string", "..."],
       "how_to_answer": {
         "5_mark_structure": "brief structure guidance",
         "10_mark_structure": "structure guidance with sub-points, examples, or comparisons"
       },
       "real_world_examples": ["string", "..."],
-      "sample_answers": {
-        "5_mark": "string",
-        "10_mark": "string"
-      },
       "assumptions": "empty string if notes were clear; otherwise state what was inferred"
     }
   ]

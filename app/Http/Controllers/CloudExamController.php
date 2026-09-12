@@ -173,8 +173,11 @@ class CloudExamController extends Controller
             $payload[] = [
                 'number' => $index + 1,
                 'question' => $q['question'] ?? '',
-                'marks' => $q['marks'] ?? 2,
+                'options' => $q['options'] ?? [],
+                'correct_answer' => $q['correct_answer'] ?? '',
                 'topic' => $q['topic'] ?? '',
+                'explanation' => $q['explanation'] ?? '',
+                'marks' => $q['marks'] ?? 5,
                 'expected_points' => $q['expected_points'] ?? [],
                 'student_answer' => $answers[$index] ?? '',
             ];
@@ -218,42 +221,37 @@ class CloudExamController extends Controller
 
     private function questionPrompt(string $subject, string $notes, int $count): string
     {
-        return <<<PROMPT
-You are a {$subject} university exam setter.
+        // CHE 110 is MCQ-based; CAP 404 and CAP 213 are subjective.
+        $isMcq = $subject === 'CHE 110';
+        $questionType = $isMcq ? 'multiple-choice questions (MCQs)' : 'subjective written-answer questions';
+        $format = $isMcq
+            ? '- Every question must have exactly four options: A, B, C and D. Only one option may be correct.\n- Test definitions, numbers, dates, classifications, examples, functions, causes, effects and distinctions.'
+            : '- Questions must require written explanations appropriate for a 100% subjective examination.\n- Test definitions, explanations, comparisons, applications, causes, effects and analysis.';
+        $jsonQuestion = $isMcq
+            ? '"options": {"A": "Option one", "B": "Option two", "C": "Option three", "D": "Option four"},\n      "correct_answer": "B",\n      "explanation": "Brief explanation based only on the notes.",'
+            : '"marks": 5,\n      "expected_points": ["Essential point one", "Essential point two"],';
+        $detailRule = $isMcq
+            ? '- Use plausible distractors based on common confusions.'
+            : '- Match the marks to the depth of the written answer.';
 
-Generate exactly {$count} written-answer questions from the provided notes.
+        return <<<PROMPT
+You are a {$subject} university examiner preparing {$questionType}.
+
+Generate exactly {$count} questions from the provided notes.
 
 STRICT QUESTION RULES:
-- Written-answer questions only.
-- No MCQs.
+{$format}
+- Include difficult but source-supported details that could reasonably appear in the examination.
+- {$detailRule}
+- Do not test information that is absent from the notes.
 - Each question must test ONLY ONE main idea.
-- Do NOT combine many tasks in one question.
-- Do NOT write questions like: "Contrast..., discuss..., determine..., establish..."
-- Use only ONE command verb per question.
-- Questions must be short, clear, and exam-like.
-- Each question must carry 2 to 8 marks only.
-
-MARKING DEPTH RULES:
-- 2 marks: define, identify, list, outline ONE small concept.
-- 3 to 4 marks: explain or describe ONE concept.
-- 5 to 6 marks: discuss or examine ONE concept in detail.
-- 7 to 8 marks: one broad concept only, not multiple unrelated tasks.
-
-GOOD QUESTION EXAMPLES:
-- Define cloud computing. [2 marks]
-- Explain the characteristics of cloud computing. [4 marks]
-- Describe the role of virtualization in cloud computing. [5 marks]
-- Compare public and private cloud deployment models. [6 marks]
-- Discuss the benefits of Platform as a Service for developers. [6 marks]
-
-BAD QUESTION EXAMPLES:
-- Explain cloud computing, discuss benefits, compare with traditional computing, and describe service models.
-- Contrast deployment models and discuss advantages and disadvantages and determine security impacts.
+- Avoid trick wording, double negatives and ambiguous options.
+- Make distractors plausible and based on common confusions.
+- Keep the wording beginner-friendly but preserve technical accuracy.
 
 Before returning:
-- Check every question has only ONE task.
-- If a question has multiple tasks, split it or simplify it.
-- Make sure marks match the question depth.
+- Check that the format matches the subject: four options and one correct answer for MCQs; marks and essential points for subjective questions.
+- Check that the answer is supported by the notes.
 
 Return JSON only.
 
@@ -261,15 +259,9 @@ JSON format:
 {
   "questions": [
     {
-      "question": "Explain one important concept from the notes.",
-      "marks": 4,
+      "question": "Which statement is correct according to the notes?",
+      {$jsonQuestion}
       "topic": "Topic from {$subject}",
-      "expected_points": [
-        "On-demand self-service",
-        "Broad network access",
-        "Resource pooling",
-        "Rapid elasticity"
-      ]
     }
   ]
 }
@@ -282,14 +274,18 @@ PROMPT;
     private function markingPrompt(array $payload): string
     {
         $json = json_encode($payload, JSON_PRETTY_PRINT);
+        $isMcq = ! empty($payload[0]['correct_answer']);
+        $markingMode = $isMcq
+            ? '- Award 1 mark for a correct option and 0 for an incorrect or unanswered option. Use correct_answer as the answer key.'
+            : '- Award partial marks fairly using marks and expected_points. Accept equivalent correct wording.';
 
         return <<<PROMPT
 You are a strict but fair university examiner.
 
-Mark the student's written answers.
+Mark the student answers.
 
 MARKING RULES:
-- Award partial marks fairly.
+- {$markingMode}
 - Use the question marks as the maximum score.
 - Accept equivalent correct definitions even if wording differs from the model answer.
 - Prioritize understanding of the concept over exact terminology.

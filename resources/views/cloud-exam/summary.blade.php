@@ -18,12 +18,30 @@
 
                 <p class="mb-3 text-slate-700">{{ $topic['summary'] }}</p>
 
+                @if (!empty($topic['simple_explanation']))
+                    <h3 class="font-semibold">Simple Explanation</h3>
+                    <p class="mb-3">{{ $topic['simple_explanation'] }}</p>
+                @endif
+                @if (!empty($topic['exam_level_explanation']))
+                    <h3 class="font-semibold">Exam-Level Details</h3>
+                    <p class="mb-3 whitespace-pre-line">{{ $topic['exam_level_explanation'] }}</p>
+                @endif
+
                 <h3 class="font-semibold">Key Points</h3>
                 <ul class="list-disc pl-6 mb-3">
                     @foreach ($topic['key_points'] ?? [] as $point)
                         <li>{{ $point }}</li>
                     @endforeach
                 </ul>
+
+                @foreach (['important_facts' => 'Important Facts', 'mcq_traps' => 'MCQ Traps'] as $field => $heading)
+                    @if (!empty($topic[$field]))
+                        <h3 class="font-semibold">{{ $heading }}</h3>
+                        <ul class="list-disc pl-6 mb-3">
+                            @foreach ($topic[$field] as $item)<li>{{ $item }}</li>@endforeach
+                        </ul>
+                    @endif
+                @endforeach
 
                 <h3 class="font-semibold">How to Answer</h3>
                 @if (is_array($topic['how_to_answer'] ?? null))
@@ -40,11 +58,6 @@
                     @endforeach
                 </ul>
 
-                <h3 class="font-semibold">5-Mark Answer</h3>
-                <p class="mb-3 whitespace-pre-line">{{ $topic['sample_answers']['5_mark'] ?? $topic['sample_answer'] ?? '' }}</p>
-
-                <h3 class="font-semibold">10-Mark Answer</h3>
-                <p class="whitespace-pre-line">{{ $topic['sample_answers']['10_mark'] ?? '' }}</p>
 
                 @if (!empty($topic['assumptions']))
                     <p class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800"><strong>Assumption:</strong> {{ $topic['assumptions'] }}</p>
